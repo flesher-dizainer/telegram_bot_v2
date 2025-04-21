@@ -1,0 +1,10 @@
+/.env
+/Строительство Чаты 3000.xlsx
+/telegram_clients.db
+/23306278.session
+/20207997.session
+/src/prompts/prompt_message.txt
+/src/prompts/prompt_mistral.txt
+/src/database/telegram_clients.db
+/src/task_manager/manager.py
+/src/task_manager/tasks.py
