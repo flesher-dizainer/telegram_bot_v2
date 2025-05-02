@@ -19,3 +19,6 @@ DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite+aiosqlite:///src/telegram_clien
 
 # Logging
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
+
+# Имя пользователя, кому пересылаем сообщения
+FORWARD_CHAT_ID = os.getenv('FORWARD_CLIENT_USERNAME', '')

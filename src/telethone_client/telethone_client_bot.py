@@ -1,5 +1,7 @@
 import logging
 from telethon import TelegramClient, events
+
+from src.task_container import MessageProcessor
 from src.telethone_client.handlers.base_handlers import BaseHandlers
 from src.telethone_client.handlers.main_handlers import MainHandlers
 
@@ -52,4 +54,8 @@ class MainTelegramClient(BaseTelegramClient):
     async def start(self):
         """Запускает планировщик задач и клиент."""
         await self.handlers.task_scheduler.start()
+        # добавляем задачу на обработку групповых сообщений
+        await self.handlers.task_scheduler.add_task(MessageProcessor.processing_loop())
+        # активируем задачу
+        await self.handlers.task_scheduler.run_all_pending()
         await super().start()  # Запускаем клиент
