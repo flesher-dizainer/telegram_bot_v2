@@ -130,7 +130,7 @@ class MessageProcessor:
             if not cls._messages_buffer:
                 logging.info("Буфер пуст, нет сообщений для обработки.")
                 return
-            _messages_buffer = cls._messages_buffer
+            _messages_buffer = cls._messages_buffer.copy()
             cls._messages_buffer.clear()
 
         # Здесь ваша логика обработки сообщений
