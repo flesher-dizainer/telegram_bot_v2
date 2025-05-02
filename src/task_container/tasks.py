@@ -137,7 +137,7 @@ class MessageProcessor:
         print(f"Обрабатываю {len(_messages_buffer)} сообщений...")
         message_list = "{"
         count_message_mistral = 0
-        for msg in cls._messages_buffer:
+        for msg in _messages_buffer:
             if msg.sender_id not in cls._blocked_ids:
                 count_message_mistral += 1
                 message_list += f"Message id: {msg.id}, chanel_id: {msg.chat_id}, sender_id: {msg.sender_id}, text: {msg.text}\n"
