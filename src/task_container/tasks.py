@@ -200,7 +200,7 @@ class MessageProcessor:
                 for msg_forward in list_msg_dict:
                     chanel_id_forward = msg_forward.get('chanel_id', None)
                     message_id_forward = msg_forward.get('message_id', None)
-                    for msg_obg in cls._messages_buffer:
+                    for msg_obg in _messages_buffer:
                         if (msg_obg.chat_id == chanel_id_forward) and (msg_obg.id == message_id_forward):
                             logging.info(f'Пересылаю сообщение: {msg_obg.to_dict()}')
                             if FORWARD_CHAT_ID:
