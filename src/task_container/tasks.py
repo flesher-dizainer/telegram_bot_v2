@@ -1,6 +1,9 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
 from typing import List
+
+from telethon.tl.functions.channels import JoinChannelRequest
+
 from src.utils.json_utils import JsonUtils
 
 from telethon import TelegramClient, events, errors
@@ -107,6 +110,39 @@ class TaskContainer:
             logging.info("Парсинг групп завершен")
             await event.reply("Парсинг групп завершен")
 
+    @staticmethod
+    async def join_group_or_channel(event: events.NewMessage.Event):
+        """Присоединяется к группе или чату."""
+        # получаем из бд все группы и каналы со статусом second
+        await event.reply("Присоединяюсь к группам и каналам...")
+        db = Database(DATABASE_URL)
+        try:
+            # получаем список групп и каналов из бд
+            groups_list = await db.get_chats_by_status(status='second')
+            # получаем список всех подключенных групп
+            connected_groups = await event.client.get_dialogs()
+            # формируем список id подключенных групп
+            connected_groups_ids = [group.id for group in connected_groups]
+            count_groups_connect = 0
+            for group in groups_list:
+                try:
+                    channel  = await event.client.get_entity(group.name)
+                    if channel.id not in connected_groups_ids:
+                        await event.client(JoinChannelRequest(channel))
+                        count_groups_connect += 1
+                        if count_groups_connect >= 5:
+                            await asyncio.sleep(60*30)
+                            count_groups_connect = 0
+                    # меняем статус группы в бд на 'connected'
+                    await db.update_group_chat(group.id, status='connected')
+                except Exception as e:
+                    logging.info("Ошибка при присоединении к группе или чату: " + str(e))
+        except Exception as e:
+            logging.info("Ошибка при получении списка групп и каналов из БД: " + str(e))
+        finally:
+            await db.close()
+            await event.reply("Присоединение к группам и каналам завершено")
+
 
 class MessageProcessor:
     _messages_buffer: List[events.NewMessage.Event] = []
@@ -114,6 +150,25 @@ class MessageProcessor:
     _last_processed: datetime = datetime.now(timezone.utc)
     _processing_interval: int = 30  # Интервал обработки в секундах (1 минута)
     _lock = asyncio.Lock()
+    _prompt_message_default = """
+        Верни json. 
+        Твоя задача определить спам, рекламу и так далее. Самое основное, это понять что сообщение подходит нашим критериям.
+        Критерии:
+            1. Человек ищет помощь в строительстве или консультацию по строительству дома, гаража, дачи, бани и т.д.
+        В ответе всегда должен быть пункт "category". 
+        category может иметь значения:
+        - spam
+        - advertising
+        - offer_job
+        - seeking_ok - подошло по нашим критериям
+        - irrelevant – сообщение не относится к строительству.
+        - scam – мошенничество или подозрительное предложение.
+        - request_quote – запрос стоимости услуг.
+        - partnership – предложение сотрудничества.
+        - question – общий вопрос по строительству.
+        - feedback – отзыв или комментарий о работе.
+        - other – что-то ещё, не подходящее под основные категории.
+        """
 
     @classmethod
     async def add_message(cls, event: events.NewMessage.Event) -> None:
@@ -134,7 +189,7 @@ class MessageProcessor:
             cls._messages_buffer.clear()
 
         # Здесь ваша логика обработки сообщений
-        print(f"Обрабатываю {len(_messages_buffer)} сообщений...")
+        logging.info(f"Обрабатываю {len(_messages_buffer)} сообщений...")
         message_list = "{"
         count_message_mistral = 0
         for msg in _messages_buffer:
@@ -144,33 +199,15 @@ class MessageProcessor:
 
         # Здесь вы можете выполнить любую логику обработки сообщений
         # print(msg.stringify())
-        print(f"Количество сообщений для обработки в Mistral: {count_message_mistral}")
+        logging.info(f"Количество сообщений для обработки в Mistral: {count_message_mistral}")
         message_list += '}'
-        prompt = """
-        Верни json. 
-        Твоя задача определить спам, рекламу и так далее. Самое основное, это понять что сообщение подходит нашим критериям.
-        Критерии:
-            1. Человек ищет помощь в строительстве или консультацию по строительству дома, гаража, дачи, бани и т.д.
-        В ответе всегда должен быть пункт "category". 
-        category может иметь значения:
-        - spam
-        - advertising
-        - offer_job
-        - seeking_ok - подошло по нашим критериям
-        - irrelevant – сообщение не относится к строительству.
-        - scam – мошенничество или подозрительное предложение.
-        - request_quote – запрос стоимости услуг.
-        - partnership – предложение сотрудничества.
-        - question – общий вопрос по строительству.
-        - feedback – отзыв или комментарий о работе.
-        - other – что-то ещё, не подходящее под основные категории.
-        """
+
         try:
             with open('src/prompts/prompt_message.txt', 'r', encoding='utf-8') as file:
                 prompt = file.read()
         except FileNotFoundError:
             logging.info("Файл 'prompt_message.txt' не найден.")
-            prompt = prompt
+            prompt = cls._prompt_message_default
 
         mistral_client = MistralAI(MISTRAL_API_KEY, MISTRAL_API_MODEL)
         try:
