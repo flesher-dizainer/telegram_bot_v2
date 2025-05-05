@@ -8,7 +8,7 @@ from src.utils.json_utils import JsonUtils
 
 from telethon import TelegramClient, events, errors
 from src.database.database import Database
-from config import DATABASE_URL, MISTRAL_API_KEY, MISTRAL_API_MODEL, FORWARD_CHAT_ID
+from config import DATABASE_URL, MISTRAL_API_KEY, MISTRAL_API_MODEL, MISTRAL_API_KEY_PARSING_GROUP, FORWARD_CHAT_ID
 import logging
 from src.utils.mistralAi import MistralAI, get_count_message
 
@@ -61,12 +61,13 @@ class TaskContainer:
         except FileNotFoundError:
             logging.info("Файл 'prompt_mistral.txt' не найден.")
             prompt = PROMPT
-        mistral_client = MistralAI(MISTRAL_API_KEY, MISTRAL_API_MODEL)
+        mistral_client = MistralAI(MISTRAL_API_KEY_PARSING_GROUP, MISTRAL_API_MODEL)
         db = Database(DATABASE_URL)
         twenty_four_hours_ago = datetime.now(timezone.utc) - timedelta(hours=24)
         try:
             # принимаем данные из бд
-            chats_db = (await db.get_chats_by_status(status='test'))[:10]
+            chats_db = (await db.get_chats_by_status(status='test'))
+            await event.reply(f"Количество чатов для парсинга: {len(chats_db)}")
             for chat in chats_db:
                 try:
                     messages = await client.get_messages(chat.name, limit=10)
@@ -126,12 +127,12 @@ class TaskContainer:
             count_groups_connect = 0
             for group in groups_list:
                 try:
-                    channel  = await event.client.get_entity(group.name)
+                    channel = await event.client.get_entity(group.name)
                     if channel.id not in connected_groups_ids:
                         await event.client(JoinChannelRequest(channel))
                         count_groups_connect += 1
                         if count_groups_connect >= 5:
-                            await asyncio.sleep(60*30)
+                            await asyncio.sleep(60 * 30)
                             count_groups_connect = 0
                     # меняем статус группы в бд на 'connected'
                     await db.update_group_chat(group.id, status='connected')

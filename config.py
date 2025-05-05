@@ -13,6 +13,7 @@ SYSTEM_VERSION = os.getenv('TELEGRAM_SYSTEM_VERSION', '4.16.30-debian')
 # Mistral AI
 MISTRAL_API_KEY = os.getenv('MISTRAL_API_KEY', '')
 MISTRAL_API_MODEL = os.getenv('MISTRAL_API_MODEL', 'mistral-tiny')
+MISTRAL_API_KEY_PARSING_GROUP = os.getenv('MISTRAL_API_KEY_PARSING_GROUP', '')
 
 # Database
 DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite+aiosqlite:///src/telegram_clients.db')

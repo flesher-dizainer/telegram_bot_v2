@@ -101,4 +101,3 @@ class MainHandlers(BaseHandlers):
         id_task = await self.task_scheduler.add_task(self.task_container.join_group_or_channel(event),
                                                      "join_groups")
         await self.task_scheduler.run_task(id_task)
-

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Any
 
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, AsyncSession, create_async_engine
@@ -23,12 +23,17 @@ class GroupChats(Base):
     channel_id: Mapped[int] = mapped_column(Integer, default=0)
 
 
-class Database:
+class BaseDatabase:
+    _lock = asyncio.Lock()
+
+
+class Database(BaseDatabase):
     def __init__(self, db_url: str = "sqlite+aiosqlite:///src/database/telegram_clients.db"):
         self.engine = create_async_engine(db_url, echo=True)
         self.async_session = async_sessionmaker(
             self.engine, expire_on_commit=False
         )
+        super().__init__()
 
     async def create_tables(self):
         async with self.engine.begin() as conn:
@@ -93,20 +98,37 @@ class Database:
             name: Optional[str] = None,
             status: Optional[str] = None,
             channel_id: Optional[int] = None
-    ) -> Optional[GroupChats]:
-        async with self.async_session() as session:
-            stmt = update(GroupChats).where(GroupChats.id == chat_id)
-            if name is not None:
-                stmt = stmt.values(name=name)
-            if status is not None:
-                stmt = stmt.values(status=status)
-            if channel_id is not None:
-                stmt = stmt.values(channel_id=channel_id)
+    ) -> Optional[GroupChats | Any | None]:
+        async with self._lock:
+            async with self.async_session() as session:
+                async with session.begin():
+                    # Получаем объект напрямую
+                    chat = await session.get(GroupChats, chat_id)
+                    if not chat:
+                        return None
 
-            await session.execute(stmt)
-            await session.commit()
+                    # Обновляем поля
+                    if name is not None:
+                        chat.name = name
+                    if status is not None:
+                        chat.status = status
+                    if channel_id is not None:
+                        chat.channel_id = channel_id
 
-            return await self.get_group_chat(chat_id)
+                    return chat  # Автоматический commit при выходе
+        # async with self.async_session() as session:
+        #     stmt = update(GroupChats).where(GroupChats.id == chat_id)
+        #     if name is not None:
+        #         stmt = stmt.values(name=name)
+        #     if status is not None:
+        #         stmt = stmt.values(status=status)
+        #     if channel_id is not None:
+        #         stmt = stmt.values(channel_id=channel_id)
+        #
+        #     await session.execute(stmt)
+        #     await session.commit()
+        #
+        #     return await self.get_group_chat(chat_id)
 
     async def delete_group_chat(self, chat_id: int) -> bool:
         async with self.async_session() as session:
@@ -120,7 +142,7 @@ class Database:
 # Пример использования
 async def main():
     db = Database("sqlite+aiosqlite:///telegram_clients.db")
-    chats = await db.get_chats_by_status(status='test')
+    chats = await db.get_chats_by_status(status='bad_second')
     # await db.create_tables()
     #
     # # Создание чата
@@ -139,12 +161,12 @@ async def main():
     # deleted = await db.delete_group_chat(chat.id)
     # print(f"Chat deleted: {deleted}")
 
-
     for chat in chats:
         print(f"Название : {chat.name}, Status : {chat.status}")
-        #updated_chat = await db.update_group_chat(chat.id, status="test")
-        #print(f"Updated Название : {updated_chat.name}, status: {updated_chat.status}")
+        updated_chat = await db.update_group_chat(chat.id, status="bad_sec")
+        print(f"Updated Название : {updated_chat.name}, status: {updated_chat.status}")
     await db.close()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -55,7 +55,7 @@ class MainTelegramClient(BaseTelegramClient):
         """Запускает планировщик задач и клиент."""
         await self.handlers.task_scheduler.start()
         # добавляем задачу на обработку групповых сообщений
-        id_task = await self.handlers.task_scheduler.add_task(MessageProcessor.processing_loop())
+        id_task = await self.handlers.task_scheduler.add_task(MessageProcessor.processing_loop(), "processing_loop")
         # активируем задачу
         #await self.handlers.task_scheduler.run_all_pending()
         await self.handlers.task_scheduler.run_task(id_task)
