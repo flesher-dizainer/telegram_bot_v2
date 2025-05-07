@@ -136,6 +136,11 @@ class TaskContainer:
                             count_groups_connect = 0
                     # меняем статус группы в бд на 'connected'
                     await db.update_group_chat(group.id, status='connected')
+                except errors.FloodWaitError as e:
+                    logging.error(f"Ошибка: {e}")
+                    await event.reply(f"Ошибка FloodWaitError: {e.seconds}")
+                    await asyncio.sleep(e.seconds)
+                    continue
                 except Exception as e:
                     logging.info("Ошибка при присоединении к группе или чату: " + str(e))
         except Exception as e:
