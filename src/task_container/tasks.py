@@ -130,10 +130,7 @@ class TaskContainer:
                     channel = await event.client.get_entity(group.name)
                     if channel.id not in connected_groups_ids:
                         await event.client(JoinChannelRequest(channel))
-                        count_groups_connect += 1
-                        if count_groups_connect >= 5:
-                            await asyncio.sleep(60 * 30)
-                            count_groups_connect = 0
+                        await asyncio.sleep(60 * 5)
                     # меняем статус группы в бд на 'connected'
                     await db.update_group_chat(group.id, status='connected')
                 except errors.FloodWaitError as e:
