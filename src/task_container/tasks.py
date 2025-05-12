@@ -244,7 +244,9 @@ class MessageProcessor:
                         if (msg_obg.chat_id == chanel_id_forward) and (msg_obg.id == message_id_forward):
                             logging.info(f'Пересылаю сообщение: {msg_obg.to_dict()}')
                             if FORWARD_CHAT_ID:
-                                await msg_obg.message.forward_to(FORWARD_CHAT_ID)
+                                for chat_id in FORWARD_CHAT_ID:
+                                    await msg_obg.message.forward_to(chat_id)
+                                #await msg_obg.message.forward_to(FORWARD_CHAT_ID)
 
         except Exception as e:
             logging.info(f'Ошибка Mistral{e}')
