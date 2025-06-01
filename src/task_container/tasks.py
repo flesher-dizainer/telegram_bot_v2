@@ -215,7 +215,7 @@ class MessageProcessor:
         mistral_client = MistralAI(MISTRAL_API_KEY, MISTRAL_API_MODEL)
         try:
             text_mistral = await mistral_client.chat(message_list, prompt)
-            logging.info(text_mistral)
+            #logging.info(text_mistral)
             # ПРЕОБРАЗУЕМ В JSON
             mistral_dict = JsonUtils.text_to_json(text_mistral)
             list_msg_dict = []
@@ -226,7 +226,7 @@ class MessageProcessor:
                     cls._blocked_ids.add(mistral_dict.get('sender_id', None))
                 if status_msg == 'seeking_ok':
                     list_msg_dict.append(mistral_dict)
-                    logging.info(mistral_dict)
+                    #logging.info(mistral_dict)
             elif type(mistral_dict) is list:
                 # logging.info(f'Mistral: {mistral_dict}')
                 for msg_dict in mistral_dict:
@@ -234,7 +234,7 @@ class MessageProcessor:
                     if status_msg in ['scam', 'spam']:
                         cls._blocked_ids.add(msg_dict.get('sender_id', None))
                     if status_msg == 'seeking_ok':
-                        logging.info(msg_dict)
+                        #logging.info(msg_dict)
                         list_msg_dict.append(msg_dict)
             if list_msg_dict:
                 for msg_forward in list_msg_dict:
@@ -242,7 +242,7 @@ class MessageProcessor:
                     message_id_forward = msg_forward.get('message_id', None)
                     for msg_obg in _messages_buffer:
                         if (msg_obg.chat_id == chanel_id_forward) and (msg_obg.id == message_id_forward):
-                            logging.info(f'Пересылаю сообщение: {msg_obg.to_dict()}')
+                            logging.info(f'Пересылаю сообщение: {msg_obg.text}')
                             if FORWARD_CHAT_ID:
                                 for chat_id in FORWARD_CHAT_ID:
                                     await msg_obg.message.forward_to(chat_id)
