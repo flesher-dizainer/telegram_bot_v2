@@ -215,7 +215,7 @@ class MessageProcessor:
         mistral_client = MistralAI(MISTRAL_API_KEY, MISTRAL_API_MODEL)
         try:
             text_mistral = await mistral_client.chat(message_list, prompt)
-            # print(text_mistral)
+            logging.info(text_mistral)
             # ПРЕОБРАЗУЕМ В JSON
             mistral_dict = JsonUtils.text_to_json(text_mistral)
             list_msg_dict = []
